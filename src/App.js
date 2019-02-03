@@ -50,7 +50,7 @@ class App extends Component {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <textarea ref={this.inputRef} style={{ minHeight: 300 }}></textarea>
             <button
-              style={{ maxWidth: 200, alignSelf: 'right' }}
+              style={{ width: 200, alignSelf: 'right', height: 42 }}
               onClick={() => this.generateAsciiMem()}
             >
               Submit
