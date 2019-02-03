@@ -50,11 +50,9 @@ class App extends Component {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <textarea ref={this.inputRef} style={{ minHeight: 300 }}></textarea>
             <button
-              style={{ width: 200, alignSelf: 'right', height: 42 }}
+              style={{ alignSelf: 'right' }}
               onClick={() => this.generateAsciiMem()}
-            >
-              Submit
-            </button>
+            >Submit</button>
           </div>
           <div style={{ flexGrow: 1, flex: 1 }}>
             <p>{this.state.compiledCode}</p>
