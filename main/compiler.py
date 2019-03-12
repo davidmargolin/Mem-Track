@@ -1,5 +1,7 @@
 import json
 from components import *
+from assemblyLib import *
+from pprint import pprint
 
 declaration = 1
 
@@ -108,4 +110,13 @@ instruction = read_instruction(1, source)['statement']   # ignore the first line
 functionClass = Function(returnType, functionName, parameter, instruction)
 obj = functionClass.get_object()
 result = json.dumps(obj, indent=4)
-print(result)
+
+with open('data.json', 'w') as outfile:
+    json.dump(obj, outfile)
+#######################################################################################################################
+with open('data.json') as infile:
+    data = json.load(infile)
+
+assembly = MethodGenerator(data)
+
+
