@@ -27,7 +27,7 @@ class MethodGenerator:
         self.varTable.addVar(source["name"], source["type"], source["address"], self.genVarCount())
         self.assemblyInstructions.append("push rbp")
         self.assemblyInstructions.append("mov rbp rsp")
-        self.assemblyInstructions.append("QWORD PTR [rbp" + str(source["address"]) + ", edi")
+        self.assemblyInstructions.append("mov QWORD PTR [rbp" + str(source["address"]) + "], edi")
 
     #reads the "instruction" portion of source code
     def instructionRead(self, source):
