@@ -123,7 +123,7 @@ with open('data.json', 'w') as outfile:
 with open('data.json') as infile:
     data = json.load(infile)
     #pprint(data)
-assembly = MethodGenerator(data)
+assembly = MethodGenerator(data).getObject()
+result = json.dumps(assembly, indent = 4)
 
-
-print(data["functionName"])
+print(result)

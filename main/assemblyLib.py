@@ -13,7 +13,7 @@ class MethodGenerator:
 
         #get function name and head instruction line with it
         self.methodName = str(source["functionName"])
-        self.assemblyInstructions.append(self.methodName)
+        self.assemblyInstructions.append(self.methodName + ":")
 
         #read parameters
         self.parameterRead(source["parameter"])
@@ -21,15 +21,13 @@ class MethodGenerator:
         #read instructions
         self.instructionRead(source["instruction"])
 
-        for x in self.assemblyInstructions:
-            print(x)
 
     #fills variable table with parameters
     def parameterRead(self, source):
         self.varTable.addVar(source["name"], source["type"], source["address"], self.genVarCount())
         self.assemblyInstructions.append("push rbp")
         self.assemblyInstructions.append("mov rbp rsp")
-        self.assemblyInstructions.append("DWORD PTR [rbp" + str(source["address"]) + ", edi")
+        self.assemblyInstructions.append("QWORD PTR [rbp" + str(source["address"]) + ", edi")
 
     #reads the "instruction" portion of source code
     def instructionRead(self, source):
@@ -60,7 +58,7 @@ class MethodGenerator:
             return
         else:
             if source["dataType"] == "int":
-                return ["mov DWORD PTR [rbp" + str(source["address"]) + "], " + str(source["dataValue"])]
+                return ["mov QWORD PTR [rbp" + str(source["address"]) + "], " + str(source["dataValue"])]
 
     #recursive function that will return a list of assembly instructions
     def genForLoop(self, source):
@@ -76,14 +74,14 @@ class MethodGenerator:
         for x in self.genDeclaration(source["initialization"]):
             assemblyCode.append(x)
         #add the Loop name
-        assemblyCode.append(topLabel)
+        assemblyCode.append(topLabel + ":")
 
         #Looping code section
         #load conditional variable into register
-        assemblyCode.append("mov " + DEF_REG + " DWORD PTR [rbp" + str(source["initialization"]["address"]) + "]")
+        assemblyCode.append("mov " + DEF_REG + " QWORD PTR [rbp" + str(source["initialization"]["address"]) + "]")
 
         #make comparison (admittedly hard coded for example source code, need to be able to read termination string)
-        assemblyCode.append("cmp " + DEF_REG + ", DWORD PTR [rbp" + str(self.varTable.address("num")) + "]")
+        assemblyCode.append("cmp " + DEF_REG + ", QWORD PTR [rbp" + str(self.varTable.address("num")) + "]")
         assemblyCode.append("jge " + bottomLabel)
 
         #Body
@@ -103,31 +101,51 @@ class MethodGenerator:
         for x in tmpCode:
             assemblyCode.append(x)
         assemblyCode.append("jmp " + topLabel)
-        assemblyCode.append(bottomLabel)
+        assemblyCode.append(bottomLabel + ":")
 
         return assemblyCode
 
 
     def genLogical(self, source):
         code = []
-        #first load operand 1
-        code.append("mov " + DEF_REG + ", DWORD PTR [rbp" + str(self.varTable.address(source["operand1"])) + "]")
+
+        try:
+            op1 = int(source["operand1"])
+        except:
+            op1 = source["operand1"]
+
+        try:
+            op2 = int(source["operand2"])
+        except:
+            op2 = source["operand2"]
+
+        # first load operand 1
+        if type(op1) == int:
+            code.append("add " + DEF_REG + ", " + str(op1))
+        else:
+            code.append("mov " + DEF_REG + ", QWORD PTR [rbp" + str(self.varTable.address(op1)) + "]")
+
+        #find operator and generate assembly to add op2 (by address) to op1 (in register)
         if source["operator"] == "+":
             # Add the second operand to the register containing operand1
-            code.append("add " + DEF_REG + " DWORD PTR [rbp" + str(self.varTable.address(source["operand2"]))+ "]")
-            #now move to destination
-            code.append("mov " + "DWORD PTR [rbp" + str(self.varTable.address(source["destination"]))+ "]" + DEF_REG)
+            if type(op2) == int:
+                code.append("add " + DEF_REG + ", " + str(op2))
+            else:
+                code.append("add " + DEF_REG + ", QWORD PTR [rbp" + str(self.varTable.address(op2))+ "]")
+            #move result to destination
+            code.append("mov " + "QWORD PTR [rbp" + str(self.varTable.address(source["destination"]))+ "], " + DEF_REG)
 
         return code
 
-
     def genReturn(self, source):
         #again, hard coded
-        return ["move " + DEF_REG + " DWORD PTR [rbp" + str(self.varTable.address("sum")) + "]"]
+        return ["mov " + DEF_REG + " QWORD PTR [rbp" + str(self.varTable.address("sum")) + "]"]
 
 
 ####utility
-
+    #return the list of assembly instructions
+    def getObject(self):
+        return self.assemblyInstructions
 
     #return variable count and then increment
     def genVarCount(self):
