@@ -122,7 +122,7 @@ with open('data.json', 'w') as outfile:
 #######################################################################################################################
 with open('data.json') as infile:
     data = json.load(infile)
-    pprint(data)
+    #pprint(data)
 assembly = MethodGenerator(data)
 
 
