@@ -65,6 +65,11 @@ def read_for_loop(i, segment):
     return {'i': result['i'], 'for': obj.get_object()}
 
 
+def read_return_line(line):
+    obj = ReturnLine(line)
+    return obj.get_object()
+
+
 # read instructions recursively
 def read_instruction(i, segment):
     instruction = []
@@ -80,7 +85,7 @@ def read_instruction(i, segment):
             instruction.append(result['for'])
             i = result['i']
         elif line.startswith('return'):
-            instruction.append(line)
+            instruction.append(read_return_line(line))
             i = i + 1
         else:
             instruction.append(read_logic(line))
@@ -106,6 +111,7 @@ parameter = {
     'address': -(declaration*4),
     'codeType': 'declaration'
 }
+
 instruction = read_instruction(1, source)['statement']   # ignore the first line
 functionClass = Function(returnType, functionName, parameter, instruction)
 obj = functionClass.get_object()
@@ -116,7 +122,8 @@ with open('data.json', 'w') as outfile:
 #######################################################################################################################
 with open('data.json') as infile:
     data = json.load(infile)
-
+    pprint(data)
 assembly = MethodGenerator(data)
 
 
+print(data["functionName"])

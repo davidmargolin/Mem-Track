@@ -67,3 +67,15 @@ class ForLoop:
             'codeType': 'for'
         }
         return obj
+
+
+class ReturnLine:
+    def __init__(self, line):
+        self.returnString = line
+
+    def get_object(self):
+        obj = {
+            'codeType' : 'return',
+            'return' : self.returnString
+        }
+        return obj
