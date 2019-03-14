@@ -97,7 +97,7 @@ source = [
     'int total(int num){',
     'int sum=0;',
     'for(int i=0;i<num;i=i+1){',
-    'sum=sum+a;',
+    'sum=sum+i;',
     '}',
     'return sum;',
     '}'
