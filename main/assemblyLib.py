@@ -139,7 +139,7 @@ class MethodGenerator:
 
     def genReturn(self, source):
         #again, hard coded
-        return ["mov " + DEF_REG + " QWORD PTR [rbp" + str(self.varTable.address("sum")) + "]"]
+        return ["mov " + DEF_REG + ", QWORD PTR [rbp" + str(self.varTable.address("sum")) + "]"]
 
 
 ####utility
