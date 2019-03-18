@@ -51,6 +51,20 @@ class LogicOperation:
         return obj
 
 
+class Condition:
+    def __init__(self, termination, statement):
+        self.termination_ = termination
+        self.statement_ = statement
+
+    def get_object(self):
+        obj = {
+            'termination': self.termination_,
+            'statement': self.statement_,
+            'codeType': 'if'
+        }
+        return obj
+
+
 class ForLoop:
     def __init__(self, initialization, termination, increment, statement):
         self.initialization_ = initialization
@@ -75,7 +89,7 @@ class ReturnLine:
 
     def get_object(self):
         obj = {
-            'codeType' : 'return',
-            'return' : self.returnString
+            'return': self.returnString,
+            'codeType': 'return'
         }
         return obj

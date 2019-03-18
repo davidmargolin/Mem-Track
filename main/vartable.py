@@ -3,7 +3,7 @@ class VarTable:
         self.table = []
 
     def addVar(self, name, type, address, varCount):
-        self.table.append({"number":varCount, "name": name, "type": type, "address": address})
+        self.table.append({"number": varCount, "name": name, "type": type, "address": address})
 
     def address(self, search):
         for item in self.table:
