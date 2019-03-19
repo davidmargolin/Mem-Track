@@ -16,16 +16,17 @@ def health_check():
 @cross_origin()
 def compile():
     source = request.json
-    head = read_head(source[0])
+    compiler = Compiler()
+    head = compiler.read_head(source[0])
     returnType = head[0]
     functionName = head[1]
     parameter = {
         'type': head[2],
         'name': head[3],
-        'address': -(declaration*4),
+        'address': -(compiler.declaration*4),
         'codeType': 'declaration'
     }
-    instruction = read_instruction(1, source)['statement']   # ignore the first line
+    instruction = compiler.read_instruction(1, source)['statement']   # ignore the first line
 
     functionClass = Function(returnType, functionName, parameter, instruction)
     obj = functionClass.get_object()
