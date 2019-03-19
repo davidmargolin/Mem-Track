@@ -58,9 +58,18 @@ class App extends Component {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        codeInput: inputCode.split("\n").map(line => line.trim())
-      })
+      body: JSON.stringify(
+        inputCode.split("\n").map(line => {
+          let trimmed = line.trim()
+          let output = ""
+          for (let i = 0; i < trimmed.length; i++) {
+            if (trimmed[i] != " " || (trimmed.substring(i - 3, i) == "int") || (trimmed.substring(i - 6, i) == "return")) {
+              output += trimmed[i]
+            }
+          }
+          return output
+        })
+      )
     }).then(response => response.json()).then(json => {
       this.setState({ compilingMessage: null, compiledCode: json })
     }).catch(err => {
