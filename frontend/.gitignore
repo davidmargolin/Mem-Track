@@ -24,3 +24,9 @@ yarn-error.log*
 
 #firebase
 .firebase
+
+# venv
+/venv
+
+# pyc
+*.pyc

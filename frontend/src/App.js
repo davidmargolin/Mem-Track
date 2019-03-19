@@ -1,5 +1,19 @@
 import React, { Component } from 'react';
 
+let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
+
+/* 
+Test Input:
+
+int total(int num){
+int sum=0;
+for(int i=0;i<num;i=i+1){
+sum=sum+5;
+}
+return sum;
+} 
+*/
+
 class App extends Component {
 
   constructor(props) {
@@ -8,11 +22,12 @@ class App extends Component {
     this.state = {
       codeMem: [...Array(100).keys()].map(key => ({ memAddress: key + 1, value: "0000000000000000" })),
       compMem: [...Array(100).keys()].map(key => ({ memAddress: key + 101, value: "0000000000000000" })),
-      compiledCode: null
+      compiledCode: [],
+      compilingMessage: null
     }
   }
 
-  generateAsciiMem() {
+  compileAndSave() {
     // get text from textarea
     let inputCode = this.inputRef.current.value
     // convert every letter to ascii (base10)
@@ -37,7 +52,21 @@ class App extends Component {
       counter++
     }
     // update the rendered data
-    this.setState({ codeMem: newCodeMem })
+    this.setState({ codeMem: newCodeMem, compilingMessage: "Compiling...", compiledCode: [] })
+    fetch(`${COMPILER_ENDPOINT}/compile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        codeInput: inputCode.split("\n").map(line => line.trim())
+      })
+    }).then(response => response.json()).then(json => {
+      this.setState({ compilingMessage: null, compiledCode: json })
+    }).catch(err => {
+      this.setState({ compilingMessage: "Failed to compile." })
+    })
+
   }
 
   render() {
@@ -51,13 +80,14 @@ class App extends Component {
             <textarea ref={this.inputRef} style={{ minHeight: 300 }}></textarea>
             <input
               type="button"
-              style={{ alignSelf: 'right', minHeight: 30 }}
+              style={{ minHeight: 30 }}
               value="Submit"
-              onClick={() => this.generateAsciiMem()}
+              onClick={() => this.compileAndSave()}
             />
-          </div>
-          <div style={{ flexGrow: 1, flex: 1 }}>
-            <p>{this.state.compiledCode}</p>
+            {<p>{this.state.compilingMessage}</p>}
+            <p>
+              {this.state.compiledCode.map((line, key) => <span key={key}>{line}<br /></span>)}
+            </p>
           </div>
 
         </div>
@@ -65,13 +95,13 @@ class App extends Component {
           <div style={{ height: '100%', flex: 1 }}>
             <h3 style={{ margin: 8 }}>ASCII</h3>
             <div style={{ height: '100%', overflowY: 'scroll' }}>
-              {this.state.codeMem.map(key => <p>{key.memAddress} {key.value}</p>)}
+              {this.state.codeMem.map(key => <p key={key.memAddress}>{key.memAddress} {key.value}</p>)}
             </div>
           </div>
           <div style={{ height: '100%', flex: 1 }}>
             <h3 style={{ margin: 8 }}>Assembly</h3>
             <div style={{ height: '100%', overflowY: 'scroll' }}>
-              {this.state.compMem.map(key => <p>{key.memAddress} {key.value}</p>)}
+              {this.state.compMem.map(key => <p key={key.memAddress}>{key.memAddress} {key.value}</p>)}
             </div>
           </div>
         </div>
