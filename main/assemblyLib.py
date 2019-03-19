@@ -12,8 +12,8 @@ class MethodGenerator:
         self.returnType = source["returnType"]
 
         #get function name and head instruction line with it
-        self.methodName = str(source["functionName"])
-        self.assemblyInstructions.append(self.methodName + ":")
+        self.methodName = source["functionName"]
+        self.assemblyInstructions.append(self.methodName + "(" + source["parameter"]["type"] + "):")
 
         #read parameters
         self.parameterRead(source["parameter"])
@@ -32,13 +32,14 @@ class MethodGenerator:
     #reads the "instruction" portion of source code
     def instructionRead(self, source):
         for item in source:
-            if item["codeType"] == "declaration":
+            codeType = item["codeType"]
+            if codeType == "declaration":
                 tmpCode = self.genDeclaration(item)
-            elif item["codeType"] == "if":
+            elif codeType == "if":
                 tmpCode = self.genCondition(item)
-            elif item["codeType"] == "for":
+            elif codeType == "for":
                 tmpCode = self.genForLoop(item)
-            elif item["codeType"] == "logicOperation":
+            elif codeType == "logicOperation":
                 tmpCode = self.genLogical(item)
             else:
                 tmpCode = self.genReturn(item)
@@ -56,11 +57,14 @@ class MethodGenerator:
     def genDeclaration(self, source):
         self.varTable.addVar(source["dataName"], source["dataType"], source["address"], self.genVarCount())
 
-        if source["dataValue"] == None:
-            return
+        if source["dataType"] == "int":
+            comment = "   # int " + source["dataName"] + "=" + source["dataValue"]
+            if source["dataValue"].isdigit():
+                return ["mov DWORD PTR [rbp" + str(source["address"]) + "], " + source["dataValue"] + comment]
+            else:
+                return ["mov DWORD PTR [rbp" + str(source["address"]) + "], DWORD PTR [rbp" + str(self.varTable.address(source["dataValue"])) + "]" + comment]
         else:
-            if source["dataType"] == "int":
-                return ["mov DWORD PTR [rbp" + str(source["address"]) + "], " + str(source["dataValue"])]
+            return ["ERROR: dataType must be int"]
 
     #helper function for genCondition and genForLoop (they are similar, so avoid repeating code)
     def genConditionOrForLoop(self, flag, source):
@@ -69,26 +73,52 @@ class MethodGenerator:
         topLabel = "L" + str(self.genLabelCount())
         bottomLabel = "L" + str(self.genLabelCount())
 
-        #only do this for the for loop, not for the if statement
         if flag == "for":
-            #add index to varTable (does not test if index exists)
-            self.varTable.addVar(source["initialization"]["dataName"], source["initialization"]["dataType"], source["initialization"]["address"], self.genVarCount())
-            #first initialize for loop conditional value in memory with value in source
+            initialization = "int " + source["initialization"]["dataName"] + "=" + source["initialization"]["dataValue"] + ";"
+            termination = source["termination"] + ";"
+            increment = (source["increment"]["destination"] + "=" + source["increment"]["operand1"] +
+                         source["increment"]["operator"] + source["increment"]["operand2"])
+            og_comment = "   # for(" + initialization + termination + increment + ")"
+            #initialize for loop conditional value in memory with value in source
             for x in self.genDeclaration(source["initialization"]):
                 assemblyCode.append(x)
+        else:
+            og_comment = "   # if(" + source["termination"] + ")"
 
         #add the label name
-        assemblyCode.append(topLabel + ":")
+        assemblyCode.append(topLabel + ":" + og_comment)
         #make comparison
         operators = ["<=", ">=", "<", ">", "==", "!="]
+        invalid = False
         curr_op = ""
         op_ctr = 0
         while curr_op == "":
+            if op_ctr == len(operators):
+                invalid = True
+                break
             (operand1, operator, operand2) = source["termination"].partition(operators[op_ctr])
             curr_op = operator
             op_ctr += 1
 
-        assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]")
+        if invalid:
+            return ["ERROR: invalid conditional statement"]
+
+        comment = "   # " + operand1 + operator + operand2
+        if operand1.isdigit():
+            if operand2.isdigit(): #both op1 and op2 are numbers
+                assemblyCode.append("mov " + REG1 + ", " + operand1)
+                assemblyCode.append("mov " + REG2 + ", " + operand2)
+                assemblyCode.append("cmp " + REG1 + ", " + REG2 + comment)
+            else: #op1 is a number but op2 is a variable
+                assemblyCode.append("mov " + REG1 + ", " + operand1)
+                assemblyCode.append("cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+        else:
+            if operand2.isdigit(): #op2 is a number but op1 is a variable
+                assemblyCode.append("mov " + REG1 + ", " + operand2)
+                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
+            else: #both op1 and op2 are variables
+                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+
         #jump on opposite condition (e.g. opposite of < is >=, so do jge)
         if operator == "<=":
             assemblyCode.append("jg " + bottomLabel)
@@ -103,16 +133,19 @@ class MethodGenerator:
         elif operator == "!=":
             assemblyCode.append("je " + bottomLabel)
 
-        #Body
-        for x in source["statement"]:
-            if x["codeType"] == "logicOperation":
-                tmpCode = self.genLogical(x)
-            elif x["codeType"] == "if":
-                tmpCode = self.genCondition(x)
-            elif x["codeType"] == "for":
-                tmpCode = self.genForLoop(x)
-            elif x["codeType"] == "declaration":
-                tmpCode = self.genDeclaration(x["dataType"], x["address"], x["dataValue"])
+        #body
+        for item in source["statement"]:
+            codeType = item["codeType"]
+            if codeType == "declaration":
+                tmpCode = self.genDeclaration(item)
+            elif codeType == "if":
+                tmpCode = self.genCondition(item)
+            elif codeType == "for":
+                tmpCode = self.genForLoop(item)
+            elif codeType == "logicOperation":
+                tmpCode = self.genLogical(item)
+            else:
+                tmpCode = self.genReturn(item)
             for x in tmpCode:
                 assemblyCode.append(x)
 
@@ -124,7 +157,8 @@ class MethodGenerator:
 
             assemblyCode.append("jmp " + topLabel)
 
-        assemblyCode.append(bottomLabel + ":")
+        comment = "   # end of " + topLabel + ":" + og_comment.split("#")[1]
+        assemblyCode.append(bottomLabel + ":" + comment)
         return assemblyCode
 
 
@@ -138,8 +172,9 @@ class MethodGenerator:
         assemblyCode = self.genConditionOrForLoop("for", source)
         return assemblyCode
 
+    #return a list of assembly instructions for logical operations (add, subtract, multiply, divide)
     def genLogical(self, source):
-        code = []
+        assemblyCode = []
 
         try:
             op1 = int(source["operand1"])
@@ -152,42 +187,47 @@ class MethodGenerator:
             op2 = source["operand2"]
 
         # first load operand 1
+        comment = "   # " + REG1 + " holds " + str(op1)
         if type(op1) == int:
-            code.append("mov " + REG1 + ", 0")
-            code.append("add " + REG1 + ", " + str(op1))
+            assemblyCode.append("mov " + REG1 + ", " + str(op1) + comment)
         else:
-            code.append("mov " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(op1)) + "]")
+            assemblyCode.append("mov " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(op1)) + "]" + comment)
 
         #find operator
-        if source["operator"] == "+":
+        operator = source["operator"]
+        if operator == "+":
             command = "add "
-        elif source["operator"] == "-":
+        elif operator == "-":
             command = "sub "
-        elif source["operator"] == "*":
+        elif operator == "*":
             command = "mul "
-        elif source["operator"] == "/":
+        elif operator == "/":
             command = "div "
 
         # now load operand 2
+        comment = "   # " + REG2 + " holds " + str(op2)
         if type(op2) == int:
-            code.append("mov " + REG2 + ", 0")
-            code.append("add " + REG2 + ", " + str(op2))
+            assemblyCode.append("mov " + REG2 + ", " + str(op2) + comment)
         else:
-            code.append("mov " + REG2 + ", DWORD PTR [rbp" + str(self.varTable.address(op2)) + "]")
+            assemblyCode.append("mov " + REG2 + ", DWORD PTR [rbp" + str(self.varTable.address(op2)) + "]" + comment)
 
-        #store operand1 <operation> operand2 into REG1
-        code.append(command + REG1 + ", " + REG2)
+        #store op1 <operation> op2 into REG1
+        comment = "   # " + REG1 + " holds " + str(op1) + operator + str(op2)
+        assemblyCode.append(command + REG1 + ", " + REG2 + comment)
         #move result to destination
-        code.append("mov " + "DWORD PTR [rbp" + str(self.varTable.address(source["destination"]))+ "], " + REG1)
-        return code
+        comment = "   # " + source["destination"] + "=" + str(op1) + operator + str(op2)
+        assemblyCode.append("mov " + "DWORD PTR [rbp" + str(self.varTable.address(source["destination"])) + "], " + REG1 + comment)
+        return assemblyCode
 
+
+    #return a list of assembly instructions for the return statement
     def genReturn(self, source):
-        returnName = source['return'].split("return ")[1][:-1]
+        returnName = source["dataName"]
+        comment = "   # return " + returnName
         if returnName.isdigit():
-            return ["mov " + REG1 + ", " + returnName]
+            return ["mov " + REG1 + ", " + returnName + comment]
         else:
-            return ["mov " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(returnName)) + "]"]
-
+            return ["mov " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(returnName)) + "]" + comment]
 
 #####Utility
 
@@ -201,6 +241,7 @@ class MethodGenerator:
         self.varCount+=1
         return tmp
 
+    #return label count and then increment
     def genLabelCount(self):
         tmp = self.labelCount
         self.labelCount+=1

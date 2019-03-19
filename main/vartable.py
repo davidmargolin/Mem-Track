@@ -10,3 +10,4 @@ class VarTable:
             tmp = item["name"]
             if tmp == search:
                 return item["address"]
+        return " ERROR: variable '" + search + "' not found "

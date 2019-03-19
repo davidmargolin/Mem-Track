@@ -1,5 +1,4 @@
 import json
-#from pprint import pprint
 from compiler import *
 from assemblyLib import *
 
@@ -15,18 +14,10 @@ parameter = {
     'address': -(declaration*4),
     'codeType': 'declaration'
 }
-
 instruction = read_instruction(1, source)['statement']   # ignore the first line
+
 functionClass = Function(returnType, functionName, parameter, instruction)
 obj = functionClass.get_object()
-
-with open('data.json', 'w') as outfile:
-    json.dump(obj, outfile)
-
-with open('data.json') as infile:
-    data = json.load(infile)
-    #pprint(data)
-
-assembly = MethodGenerator(data).getObject()
+assembly = MethodGenerator(obj).getObject()
 result = json.dumps(assembly, indent=4)
 print(result)
