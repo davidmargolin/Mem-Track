@@ -15,7 +15,7 @@ def health_check():
 @app.route('/compile', methods = ['POST'])
 @cross_origin()
 def compile():
-    source = request.json['codeInput']
+    source = request.json
     head = read_head(source[0])
     returnType = head[0]
     functionName = head[1]
