@@ -22,7 +22,8 @@ class Compiler:
     declaration_pattern = '^int ' + identifier_pattern + '(=' + expression_pattern + ')?;$'
     logic_pattern = '^' + identifier_pattern + '=' + expression_pattern + ';$'
     condition_pattern = '^if\(' + expression_pattern + '([<>]=?|(==|!=))' + expression_pattern + '\){$'
-    for_loop_pattern = '^for\(' + declaration_pattern[1:-1] + condition_pattern[5:-4] + ';' + logic_pattern[1:-2] + '\){$'
+    for_loop_pattern = ('^for\(' + declaration_pattern[1:-1] + condition_pattern[5:-4] + ';(' + logic_pattern[1:-2] +
+                        '|(' + identifier_pattern + '(\+\+|--)|(\+\+|--)' + identifier_pattern + '))\){$')
     return_pattern = '^return ' + expression_pattern + ';$'
 
     def __init__(self):
@@ -128,6 +129,14 @@ class Compiler:
         header = line[4:-2].split(';')
         initialization = self.read_declaration(header[0]+';')
         termination = header[1]
+
+        if '++' in header[2]:
+            var = header[2].replace('++', '')
+            header[2] = var + '=' + var + '+1'
+        elif '--' in header[2]:
+            var = header[2].replace('--', '')
+            header[2] = var + '=' + var + '-1'
+
         increment = self.read_logic(header[2]+';')
         i = i + 1
         result = self.read_instruction(i, segment)

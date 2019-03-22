@@ -2,6 +2,7 @@ from vartable import *
 
 REG1 = "eax"
 REG2 = "ebx"
+REG3 = "ecx"
 PARAM_REG1 = "edi"
 
 class MethodGenerator:
@@ -163,20 +164,45 @@ class MethodGenerator:
             curr_op = operator
             op_ctr += 1
 
+        exp1 = self.genLogicalExpression(operand1)
+        exp2 = self.genLogicalExpression(operand2)
         comment = " # " + operand1 + operator + operand2
-        if operand1.isdigit():
-            if operand2.isdigit(): #both op1 and op2 are numbers
+
+        if exp1:
+            if exp2:
+                #exp1 is stored in REG1 and exp2 is also stored in REG1
+                #since both are in REG1, move one of them to REG3 (REG1 and REG2 are needed by genLogicalExpression)
+                exp1.append("mov " + REG3 + ", " + REG1)
+                assemblyCode.append(exp1) #exp1 stored in REG3
+                assemblyCode.append(exp2) #exp2 stored in REG1
+                assemblyCode.append("cmp " + REG3 + ", " + REG1 + comment)
+            elif operand2.isdigit():
+                assemblyCode.append(exp1) #exp1 stored in REG1
+                assemblyCode.append("mov " + REG2 + ", " + operand2)
+                assemblyCode.append("cmp " + REG1 + ", " + REG2 + comment)
+            else: #operand2 is a variable
+                assemblyCode.append(exp1) #exp1 stored in REG1
+                assemblyCode.append("cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+        elif operand1.isdigit():
+            if exp2:
+                assemblyCode.append(exp2) #exp2 stored in REG1
+                assemblyCode.append("mov " + REG2 + ", " + operand1)
+                assemblyCode.append("cmp " + REG2 + ", " + REG1 + comment)
+            elif operand2.isdigit():
                 assemblyCode.append("mov " + REG1 + ", " + operand1)
                 assemblyCode.append("mov " + REG2 + ", " + operand2)
                 assemblyCode.append("cmp " + REG1 + ", " + REG2 + comment)
-            else: #op1 is a number but op2 is a variable
+            else: #operand2 is a variable
                 assemblyCode.append("mov " + REG1 + ", " + operand1)
                 assemblyCode.append("cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
-        else:
-            if operand2.isdigit(): #op2 is a number but op1 is a variable
+        else: #operand1 is a variable
+            if exp2:
+                assemblyCode.append(exp2) #exp2 stored in REG1
+                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
+            elif operand2.isdigit():
                 assemblyCode.append("mov " + REG1 + ", " + operand2)
                 assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
-            else: #both op1 and op2 are variables
+            else: #operand2 is a variable
                 assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
 
         #jump on opposite condition (e.g. opposite of < is >=, so do jge)
