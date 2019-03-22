@@ -28,21 +28,27 @@ def compile():
         raise Exception('mismatched parentheses or brackets')
 
     compiler = Compiler()
-    head = compiler.read_head(source[0])
-    returnType = head[0]
-    functionName = head[1]
-    parameter = {
-        'type': head[2],
-        'name': head[3],
-        'address': -(compiler.declaration*4),
-        'codeType': 'declaration'
-    }
-    instruction = compiler.read_instruction(1, source)['statement'] # ignore the first line
 
-    functionClass = Function(returnType, functionName, parameter, instruction)
-    obj = functionClass.get_object()
-    assembly = MethodGenerator(obj).getObject()
-    return jsonify(assembly)
+    try:
+        head = compiler.read_head(source[0])
+        returnType = head[0]
+        functionName = head[1]
+        parameter = {
+            'type': head[2],
+            'name': head[3],
+            'address': -(compiler.declaration*4),
+            'codeType': 'declaration'
+        }
+        instruction = compiler.read_instruction(1, source)['statement'] # ignore the first line
+
+        functionClass = Function(returnType, functionName, parameter, instruction)
+        obj = functionClass.get_object()
+        assembly = MethodGenerator(obj).getObject()
+        return jsonify(assembly)
+    except Exception as e:
+        return jsonify(str(e)), 404
+
+    
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
