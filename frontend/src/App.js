@@ -72,7 +72,7 @@ class App extends Component {
         )
       }).then(response => response.json().then(json => {
         if (response.ok){
-          this.setState({ compilingMessage: "Compiled Successfuly", compiledCode: json, codeMem: newCodeMem })
+          this.setState({ compilingMessage: "Compiled Successfully", compiledCode: json, codeMem: newCodeMem })
         }else{
           this.setState({ compilingMessage: "An Error Occured: " + json })
         }
