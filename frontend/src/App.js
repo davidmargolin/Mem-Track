@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 
+//let COMPILER_ENDPOINT = "http://localhost:5000"
 let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
 
-/* 
+/*
 Test Input:
 
 int total(int num){
@@ -11,7 +12,7 @@ for(int i=0;i<num;i=i+1){
 sum=sum+5;
 }
 return sum;
-} 
+}
 */
 
 class App extends Component {
@@ -58,7 +59,7 @@ class App extends Component {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(
-          inputCode.split("\n").map(line => {
+          inputCode.split("\n").filter(line => line.trim() !== "").map(line => {
             let trimmed = line.trim()
             let output = ""
             for (let i = 0; i < trimmed.length; i++) {
@@ -69,11 +70,15 @@ class App extends Component {
             return output
           })
         )
-      }).then(response => response.json()).then(json => {
-        this.setState({ compilingMessage: "Compiled Successfuly", compiledCode: json, codeMem: newCodeMem })
+      }).then(response => response.json().then(json => {
+        if (response.ok){
+          this.setState({ compilingMessage: "Compiled Successfuly", compiledCode: json, codeMem: newCodeMem })
+        }else{
+          this.setState({ compilingMessage: "An Error Occured: " + json })
+        }
       }).catch(err => {
         this.setState({ compilingMessage: "Failed to compile." })
-      })
+      }))
 
     )
 
