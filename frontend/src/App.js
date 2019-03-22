@@ -30,7 +30,7 @@ class App extends Component {
     // get text from textarea
     let inputCode = this.inputRef.current.value
     // convert every letter to ascii (base10)
-    let asciiArray = inputCode.trim().split('').map(letter => letter.charCodeAt(0))
+    let asciiArray = inputCode.split('').map(letter => letter.charCodeAt(0))
     // empty out the memory
     let newCodeMem = []
 
@@ -51,29 +51,31 @@ class App extends Component {
       counter++
     }
     // update the rendered data
-    this.setState({ codeMem: newCodeMem, compilingMessage: "Compiling...", compiledCode: [] })
-    fetch(`${COMPILER_ENDPOINT}/compile`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(
-        inputCode.split("\n").map(line => {
-          let trimmed = line.trim()
-          let output = ""
-          for (let i = 0; i < trimmed.length; i++) {
-            if (trimmed[i] !== " " || (trimmed.substring(i - 3, i) === "int") || (trimmed.substring(i - 6, i) === "return")) {
-              output += trimmed[i]
+    this.setState({ compilingMessage: "Compiling...", compiledCode: [] }, () =>
+      fetch(`${COMPILER_ENDPOINT}/compile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(
+          inputCode.split("\n").map(line => {
+            let trimmed = line.trim()
+            let output = ""
+            for (let i = 0; i < trimmed.length; i++) {
+              if (trimmed[i] !== " " || (trimmed.substring(i - 3, i) === "int") || (trimmed.substring(i - 6, i) === "return")) {
+                output += trimmed[i]
+              }
             }
-          }
-          return output
-        })
-      )
-    }).then(response => response.json()).then(json => {
-      this.setState({ compilingMessage: "Compiled Successfuly", compiledCode: json })
-    }).catch(err => {
-      this.setState({ compilingMessage: "Failed to compile." })
-    })
+            return output
+          })
+        )
+      }).then(response => response.json()).then(json => {
+        this.setState({ compilingMessage: "Compiled Successfuly", compiledCode: json, codeMem: newCodeMem })
+      }).catch(err => {
+        this.setState({ compilingMessage: "Failed to compile." })
+      })
+
+    )
 
   }
 
@@ -84,7 +86,7 @@ class App extends Component {
           <h3>Enter Program Here:</h3>
 
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%'}}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
             <textarea ref={this.inputRef} style={{ minHeight: 300 }}></textarea>
             <input
               type="button"
@@ -94,21 +96,20 @@ class App extends Component {
             />
 
           </div>
+          {(this.state.compilingMessage || this.state.compiledCode.length > 0) && <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: 600 }}>
+            {<h3>{this.state.compilingMessage}<br /></h3>}
 
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: 600}}>
             <div style={{ overflowY: 'scroll', display: 'flex', flexDirection: 'column' }}>
-              {<p>{this.state.compilingMessage}</p>}
-              <p>
-                {this.state.compiledCode.map((line, key) => <span key={key}>{line}<br /></span>)}
-              </p>
+              {this.state.compiledCode.map((line, key) => <span key={key}>{line}<br /></span>)}
             </div>
+          </div>}
         </div>
+
         {this.state.codeMem.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: 600 }}>
-            <h3 >ASCII Storage</h3>
-            <div style={{ overflowY: 'scroll', display: 'flex', flexDirection: 'column', height: '90vh' }}>
-              {this.state.codeMem.map(key => <p key={key.memAddress}>{key.memAddress} {key.value}</p>)}
-            </div>
+          <h3 >ASCII Storage</h3>
+          <div style={{ overflowY: 'scroll', display: 'flex', flexDirection: 'column', height: '90vh' }}>
+            {this.state.codeMem.map(key => <p key={key.memAddress}>{key.memAddress} {key.value}</p>)}
+          </div>
         </div>}
       </div>
     );
