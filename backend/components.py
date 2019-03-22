@@ -84,12 +84,12 @@ class ForLoop:
 
 
 class ReturnLine:
-    def __init__(self, line):
-        self.dataName = line.split('return ')[1][:-1]
+    def __init__(self, dataName):
+        self.dataName_ = dataName
 
     def get_object(self):
         obj = {
-            'dataName': self.dataName,
+            'dataName': self.dataName_,
             'codeType': 'return'
         }
         return obj

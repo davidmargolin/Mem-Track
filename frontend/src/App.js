@@ -1,17 +1,18 @@
 import React, { Component } from 'react';
 
+//let COMPILER_ENDPOINT = "http://localhost:5000"
 let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
 
-/* 
-Test Input:
+/*
+   Test Input:
 
-int total(int num){
-int sum=0;
-for(int i=0;i<num;i=i+1){
-sum=sum+5;
-}
-return sum;
-} 
+   int total(int num){
+   int sum=0;
+   for(int i=0;i<num;i=i+1){
+   sum=sum+5;
+   }
+   return sum;
+   }
 */
 
 class App extends Component {
@@ -70,7 +71,7 @@ class App extends Component {
         })
       )
     }).then(response => response.json()).then(json => {
-      this.setState({ compilingMessage: "Compiled Successfuly", compiledCode: json })
+      this.setState({ compilingMessage: "Compiled successfully.", compiledCode: json })
     }).catch(err => {
       this.setState({ compilingMessage: "Failed to compile." })
     })
