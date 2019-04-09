@@ -2,7 +2,6 @@ from vartable import *
 
 REG1 = "eax"
 REG2 = "ebx"
-REG3 = "ecx"
 PARAM_REG1 = "edi"
 
 class MethodGenerator:
@@ -49,7 +48,7 @@ class MethodGenerator:
                 self.assemblyInstructions.append(x)
 
         #pop
-        if self.assemblyInstructions[-1].startswith("jmp "+self.returnLabel): #genReturn does this sometimes
+        if self.assemblyInstructions[-1].startswith("jmp " + self.returnLabel): #genReturn does this sometimes
             del self.assemblyInstructions[-1]
 
         self.assemblyInstructions.append(self.returnLabel)
@@ -91,20 +90,17 @@ class MethodGenerator:
         elif operator == "/":
             command = "div "
 
-        #now load operand 2
-        comment = " # " + REG2 + " holds " + str(op2)
-        if type(op2) == int:
-            assemblyCode.append("mov " + REG2 + ", " + str(op2) + comment)
-        else:
-            assemblyCode.append("mov " + REG2 + ", DWORD PTR [rbp" + str(self.varTable.address(op2)) + "]" + comment)
-
         #store op1 <operation> op2 into REG1
         comment = " # " + REG1 + " holds " + str(op1) + operator + str(op2)
-        assemblyCode.append(command + REG1 + ", " + REG2 + comment)
+        if type(op2) == int:
+            assemblyCode.append(command + REG1 + ", " + str(op2) + comment)
+        else:
+            assemblyCode.append(command + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(op2)) + "]" + comment)
+
         #move result to destination
         if source["destination"]:
             comment = " # " + source["destination"] + "=" + str(op1) + operator + str(op2)
-            assemblyCode.append("mov " + "DWORD PTR [rbp" + str(self.varTable.address(source["destination"])) + "], " + REG1 + comment)
+            assemblyCode.append("mov DWORD PTR [rbp" + str(self.varTable.address(source["destination"])) + "], " + REG1 + comment)
         return assemblyCode
 
 
@@ -156,13 +152,10 @@ class MethodGenerator:
         #add the label name
         assemblyCode.append(topLabel + ":" + og_comment)
         #make comparison
-        operators = ["<=", ">=", "<", ">", "==", "!="]
-        curr_op = ""
-        op_ctr = 0
-        while curr_op == "":
-            (operand1, operator, operand2) = source["termination"].partition(operators[op_ctr])
-            curr_op = operator
-            op_ctr += 1
+        for op in ["<=", ">=", "<", ">", "==", "!="]:
+            if op in source["termination"]:
+                (operand1, operator, operand2) = source["termination"].partition(op)
+                break
 
         exp1 = self.genLogicalExpression(operand1)
         exp2 = self.genLogicalExpression(operand2)
@@ -171,37 +164,31 @@ class MethodGenerator:
         if exp1:
             if exp2:
                 #exp1 is stored in REG1 and exp2 is also stored in REG1
-                #since both are in REG1, move one of them to REG3 (REG1 and REG2 are needed by genLogicalExpression)
-                exp1.append("mov " + REG3 + ", " + REG1)
-                assemblyCode.append(exp1) #exp1 stored in REG3
-                assemblyCode.append(exp2) #exp2 stored in REG1
-                assemblyCode.append("cmp " + REG3 + ", " + REG1 + comment)
+                #since both are in REG1, move one of them to REG2
+                exp1.append("mov " + REG2 + ", " + REG1)
+                for x in exp1: assemblyCode.append(x) #exp1 stored in REG2
+                for x in exp2: assemblyCode.append(x) #exp2 stored in REG1
+                assemblyCode.append("cmp " + REG2 + ", " + REG1 + comment)
             elif operand2.isdigit():
-                assemblyCode.append(exp1) #exp1 stored in REG1
-                assemblyCode.append("mov " + REG2 + ", " + operand2)
-                assemblyCode.append("cmp " + REG1 + ", " + REG2 + comment)
+                for x in exp1: assemblyCode.append(x) #exp1 stored in REG1
+                assemblyCode.append("cmp " + REG1 + ", " + operand2 + comment)
             else: #operand2 is a variable
-                assemblyCode.append(exp1) #exp1 stored in REG1
+                for x in exp1: assemblyCode.append(x) #exp1 stored in REG1
                 assemblyCode.append("cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
         elif operand1.isdigit():
             if exp2:
-                assemblyCode.append(exp2) #exp2 stored in REG1
-                assemblyCode.append("mov " + REG2 + ", " + operand1)
-                assemblyCode.append("cmp " + REG2 + ", " + REG1 + comment)
+                for x in exp2: assemblyCode.append(x) #exp2 stored in REG1
+                assemblyCode.append("cmp " + operand1 + ", " + REG1 + comment)
             elif operand2.isdigit():
-                assemblyCode.append("mov " + REG1 + ", " + operand1)
-                assemblyCode.append("mov " + REG2 + ", " + operand2)
-                assemblyCode.append("cmp " + REG1 + ", " + REG2 + comment)
+                assemblyCode.append("cmp " + operand1 + ", " + operand2 + comment)
             else: #operand2 is a variable
-                assemblyCode.append("mov " + REG1 + ", " + operand1)
-                assemblyCode.append("cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+                assemblyCode.append("cmp " + operand1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
         else: #operand1 is a variable
             if exp2:
-                assemblyCode.append(exp2) #exp2 stored in REG1
+                for x in exp2: assemblyCode.append(x) #exp2 stored in REG1
                 assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
             elif operand2.isdigit():
-                assemblyCode.append("mov " + REG1 + ", " + operand2)
-                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
+                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + operand2 + comment)
             else: #operand2 is a variable
                 assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
 
