@@ -4,6 +4,9 @@ REG1 = "eax"
 REG2 = "ebx"
 PARAM_REG1 = "edi"
 
+INDENT = "~~"
+SMALL_INDENT = "~"
+
 class MethodGenerator:
     def __init__(self, source):
         self.varCount = 0 #for variable table
@@ -54,6 +57,7 @@ class MethodGenerator:
         self.assemblyInstructions.append(self.returnLabel)
         self.assemblyInstructions.append("pop rbp")
         self.assemblyInstructions.append("ret")
+        self.assemblyInstructions.append("") #acts as new line
         return
 
 #####Code Generation
@@ -138,19 +142,19 @@ class MethodGenerator:
         bottomLabel = "L" + str(self.genLabelCount())
 
         if flag == "for":
-            initialization = "int " + source["initialization"]["dataName"] + "=" + source["initialization"]["dataValue"] + ";"
-            termination = source["termination"] + ";"
+            initialization = "int " + source["initialization"]["dataName"] + "=" + source["initialization"]["dataValue"] + "; "
+            termination = source["termination"] + "; "
             increment = (source["increment"]["destination"] + "=" + source["increment"]["operand1"] +
                          source["increment"]["operator"] + source["increment"]["operand2"])
             og_comment = " # for(" + initialization + termination + increment + ")"
             #initialize for loop conditional value in memory with value in source
             for x in self.genDeclaration(source["initialization"]):
-                assemblyCode.append(x)
+                assemblyCode.append(SMALL_INDENT + x)
         else:
             og_comment = " # if(" + source["termination"] + ")"
 
         #add the label name
-        assemblyCode.append(topLabel + ":" + og_comment)
+        assemblyCode.append(SMALL_INDENT + topLabel + ":" + og_comment)
         #make comparison
         for op in ["<=", ">=", "<", ">", "==", "!="]:
             if op in source["termination"]:
@@ -166,45 +170,45 @@ class MethodGenerator:
                 #exp1 is stored in REG1 and exp2 is also stored in REG1
                 #since both are in REG1, move one of them to REG2
                 exp1.append("mov " + REG2 + ", " + REG1)
-                for x in exp1: assemblyCode.append(x) #exp1 stored in REG2
-                for x in exp2: assemblyCode.append(x) #exp2 stored in REG1
-                assemblyCode.append("cmp " + REG2 + ", " + REG1 + comment)
+                for x in exp1: assemblyCode.append(SMALL_INDENT + x) #exp1 stored in REG2
+                for x in exp2: assemblyCode.append(SMALL_INDENT + x) #exp2 stored in REG1
+                assemblyCode.append(SMALL_INDENT + "cmp " + REG2 + ", " + REG1 + comment)
             elif operand2.isdigit():
-                for x in exp1: assemblyCode.append(x) #exp1 stored in REG1
-                assemblyCode.append("cmp " + REG1 + ", " + operand2 + comment)
+                for x in exp1: assemblyCode.append(SMALL_INDENT + x) #exp1 stored in REG1
+                assemblyCode.append(SMALL_INDENT + "cmp " + REG1 + ", " + operand2 + comment)
             else: #operand2 is a variable
-                for x in exp1: assemblyCode.append(x) #exp1 stored in REG1
-                assemblyCode.append("cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+                for x in exp1: assemblyCode.append(SMALL_INDENT + x) #exp1 stored in REG1
+                assemblyCode.append(SMALL_INDENT + "cmp " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
         elif operand1.isdigit():
             if exp2:
-                for x in exp2: assemblyCode.append(x) #exp2 stored in REG1
-                assemblyCode.append("cmp " + operand1 + ", " + REG1 + comment)
+                for x in exp2: assemblyCode.append(SMALL_INDENT + x) #exp2 stored in REG1
+                assemblyCode.append(SMALL_INDENT + "cmp " + operand1 + ", " + REG1 + comment)
             elif operand2.isdigit():
-                assemblyCode.append("cmp " + operand1 + ", " + operand2 + comment)
+                assemblyCode.append(SMALL_INDENT + "cmp " + operand1 + ", " + operand2 + comment)
             else: #operand2 is a variable
-                assemblyCode.append("cmp " + operand1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+                assemblyCode.append(SMALL_INDENT + "cmp " + operand1 + ", DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
         else: #operand1 is a variable
             if exp2:
-                for x in exp2: assemblyCode.append(x) #exp2 stored in REG1
-                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
+                for x in exp2: assemblyCode.append(SMALL_INDENT + x) #exp2 stored in REG1
+                assemblyCode.append(SMALL_INDENT + "cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + REG1 + comment)
             elif operand2.isdigit():
-                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + operand2 + comment)
+                assemblyCode.append(SMALL_INDENT + "cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], " + operand2 + comment)
             else: #operand2 is a variable
-                assemblyCode.append("cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
+                assemblyCode.append(SMALL_INDENT + "cmp DWORD PTR [rbp" + str(self.varTable.address(operand1)) + "], DWORD PTR [rbp" + str(self.varTable.address(operand2)) + "]" + comment)
 
         #jump on opposite condition (e.g. opposite of < is >=, so do jge)
         if operator == "<=":
-            assemblyCode.append("jg " + bottomLabel)
+            assemblyCode.append(SMALL_INDENT + "jg " + bottomLabel)
         elif operator == ">=":
-            assemblyCode.append("jl " + bottomLabel)
+            assemblyCode.append(SMALL_INDENT + "jl " + bottomLabel)
         elif operator == "<":
-            assemblyCode.append("jge " + bottomLabel)
+            assemblyCode.append(SMALL_INDENT + "jge " + bottomLabel)
         elif operator == ">":
-            assemblyCode.append("jle " + bottomLabel)
+            assemblyCode.append(SMALL_INDENT + "jle " + bottomLabel)
         elif operator == "==":
-            assemblyCode.append("jne " + bottomLabel)
+            assemblyCode.append(SMALL_INDENT + "jne " + bottomLabel)
         elif operator == "!=":
-            assemblyCode.append("je " + bottomLabel)
+            assemblyCode.append(SMALL_INDENT + "je " + bottomLabel)
 
         #body
         for item in source["statement"]:
@@ -220,18 +224,18 @@ class MethodGenerator:
             else:
                 tmpCode = self.genReturn(item)
             for x in tmpCode:
-                assemblyCode.append(x)
+                assemblyCode.append(INDENT + x)
 
         if flag == "for":
             #incrememnt conditional variable
             tmpCode = self.genLogical(source["increment"])
             for x in tmpCode:
-                assemblyCode.append(x)
+                assemblyCode.append(SMALL_INDENT + x)
 
-            assemblyCode.append("jmp " + topLabel)
+            assemblyCode.append(SMALL_INDENT + "jmp " + topLabel)
 
         comment = " # end of " + topLabel + ":" + og_comment.split("#")[1]
-        assemblyCode.append(bottomLabel + ":" + comment)
+        assemblyCode.append(SMALL_INDENT + bottomLabel + ":" + comment)
         return assemblyCode
 
 

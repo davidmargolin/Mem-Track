@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
-//let COMPILER_ENDPOINT = "http://localhost:5000"
-let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
+let COMPILER_ENDPOINT = "http://localhost:5000"
+//let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
 
 /*
 Test Input:

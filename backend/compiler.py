@@ -5,13 +5,13 @@ class CompilerException(Exception):
     pass
 
 class Compiler:
-    reserved_keywords = ['asm', 'else', 'new', 'this', 'auto', 'enum', 'operator', 'throw', 'bool', 'explicit',
-                         'private', 'true', 'break', 'export', 'protected', 'try', 'case', 'extern', 'public', 'typedef',
-                         'catch', 'false', 'register', 'typeid', 'char', 'float', 'reinterpret_cast', 'typename', 'class', 'for',
-                         'return', 'union', 'const', 'friend', 'short', 'unsigned', 'const_cast', 'goto', 'signed', 'using',
-                         'continue', 'if', 'sizeof', 'virtual', 'default', 'inline', 'static', 'void', 'delete', 'int',
-                         'static_cast', 'volatile', 'do', 'long', 'struct', 'wchar_t', 'double', 'mutable', 'switch', 'while',
-                         'dynamic_cast', 'namespace', 'template']
+    reserved_keywords = ['asm', 'auto', 'bool', 'break', 'case', 'catch', 'char', 'class', 'const', 'const_cast',
+                         'continue', 'default', 'delete', 'do', 'double', 'dynamic_cast', 'else', 'enum', 'explicit', 'export',
+                         'extern', 'false', 'float', 'for', 'friend', 'goto', 'if', 'inline', 'int', 'long',
+                         'mutable', 'namespace', 'new', 'operator', 'private', 'protected', 'public', 'register', 'reinterpret_cast', 'return',
+                         'short', 'signed', 'sizeof', 'static', 'static_cast', 'struct', 'switch', 'template', 'this', 'throw',
+                         'true', 'try', 'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void',
+                         'volatile', 'wchar_t', 'while']
 
     int_pattern = '(0|[1-9][0-9]*)'
     identifier_pattern = '[a-zA-Z_][a-zA-Z0-9_]*'
@@ -28,7 +28,7 @@ class Compiler:
 
     def __init__(self):
         self.identifiers = []
-        self.declaration = 1
+        self.declaration = 0
 
     # returns True if x is a valid C++ identifier, else returns False
     def valid_identifier(self, x):
