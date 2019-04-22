@@ -15,6 +15,20 @@ class Function:
         return obj
 
 
+class FunctionCall:
+    def __init__(self, functionName, argument):
+        self.functionName_ = functionName
+        self.argument_ = argument
+
+    def get_object(self):
+        obj = {
+            'functionName': self.functionName_,
+            'argument': self.argument_,
+            'codeType': 'functionCall'
+        }
+        return obj
+
+
 class Declaration:
     def __init__(self, dataType, dataName, dataValue, address):
         self.dataType_ = dataType

@@ -1,5 +1,5 @@
-from components import *
 import re
+from components import *
 
 class CompilerException(Exception):
     pass
@@ -19,6 +19,7 @@ class Compiler:
 
     # IMPORTANT: anchor these ('^' at start and '$' at end) to match the entire line
     function_pattern = '^int ' + identifier_pattern + '\((int ' + identifier_pattern + ')?\){$'
+    function_call_pattern = '^' + identifier_pattern + '\((' + expression_pattern + ')?\);$'
     declaration_pattern = '^int ' + identifier_pattern + '(=' + expression_pattern + ')?;$'
     logic_pattern = '^' + identifier_pattern + '=' + expression_pattern + ';$'
     condition_pattern = '^if\(' + expression_pattern + '([<>]=?|(==|!=))' + expression_pattern + '\){$'
@@ -38,12 +39,16 @@ class Compiler:
             return False
 
     # adds x to identifiers if it is valid and doesn't already exist, else raises a CompilerException
+    # x is a tuple of the form (a, b[, c]) where a is the name, b is the type (either 'variable' or 'function'),
+    # and c exists only when b == 'function', where c is the number of function parameters (either 0 or 1)
     def add_identifier(self, x):
-        if self.valid_identifier(x):
-            if x not in self.identifiers:
-                self.identifiers.append(x)
-            else:
-                raise CompilerException('existing identifier')
+        identifier = x[0]
+        if self.valid_identifier(identifier):
+            for element in self.identifiers:
+                if element[0] == identifier:
+                    raise CompilerException('existing identifier')
+
+            self.identifiers.append(x)
         else:
             raise CompilerException('invalid identifier')
 
@@ -61,11 +66,41 @@ class Compiler:
                 if char == ')':
                     break
 
-        self.add_identifier(words[1])
         if words[2] == '' and words[3] == '': # empty parameter
+            self.add_identifier((words[1], 'function', 0))
             return words
-        self.add_identifier(words[3])
+        self.add_identifier((words[1], 'function', 1))
+        self.add_identifier((words[3], 'variable'))
         return words
+
+
+    # total(x);
+    def read_call(self, line):
+        if not re.match(self.function_call_pattern, line):
+            raise CompilerException('invalid function call syntax')
+        words = ['', '']
+        i = 0
+        for char in line:
+            if char != '(' and char != ')':
+                words[i] = words[i] + str(char)
+            else:
+                i = i + 1
+                if char == ')':
+                    break
+
+        name = words[0]
+        num_args = 1 if words[1] else 0
+        for element in self.identifiers:
+            if element[0] == name:
+                if element[1] != 'function':
+                    raise CompilerException(name + ' is not a function')
+                elif element[2] != num_args:
+                    raise CompilerException(name + ' requires ' + str(element[2]) +
+                                            (' argument' if element[2] == 1 else ' arguments'))
+                else:
+                    obj = FunctionCall(name, words[1])
+                    return obj.get_object()
+        raise CompilerException('function ' + name + ' not found')
 
 
     # int sum=0;
@@ -80,8 +115,8 @@ class Compiler:
             else:
                 i = i + 1
 
-        self.add_identifier(words[1])
-        if words[2] == '': words[2] = '0' # int x; becomes int x=0;
+        self.add_identifier((words[1], 'variable'))
+        if words[2] == '': words[2] = '0' # 'int x;' becomes 'int x=0;'
         self.declaration = self.declaration + 1
         obj = Declaration(words[0], words[1], words[2], -(self.declaration*4))
         return obj.get_object()
@@ -174,6 +209,9 @@ class Compiler:
                 i = result['i']
             elif line.startswith('return'):
                 instruction.append(self.read_return_line(line))
+                i = i + 1
+            elif '(' in line:
+                instruction.append(self.read_call(line))
                 i = i + 1
             else:
                 instruction.append(self.read_logic(line))

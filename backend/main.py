@@ -1,4 +1,3 @@
-import json
 from compiler import *
 from assemblyLib import *
 from flask import Flask, jsonify, request
@@ -32,6 +31,8 @@ def compile():
     try:
         assembly = []
         function_names = []
+        if not functions:
+            raise Exception('no valid function(s) found')
         for function in functions:
             num_parens = 0
             num_bracks = 0
@@ -47,7 +48,6 @@ def compile():
             head = compiler.read_head(function[0])
             returnType = head[0]
             functionName = head[1]
-            function_names.append(functionName)
             if head[2] and head[3]:
                 compiler.declaration += 1
                 parameter = {
@@ -56,11 +56,13 @@ def compile():
                     'address': -(compiler.declaration*4),
                     'codeType': 'declaration'
                 }
+                function_names.append((functionName, 'function', 1))
             else:
                 parameter = {
                     'type': '',
                     'name': ''
                 }
+                function_names.append((functionName, 'function', 0))
 
             instruction = compiler.read_instruction(1, function)['statement'] # ignore the first line
             functionClass = Function(returnType, functionName, parameter, instruction)
