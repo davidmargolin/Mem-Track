@@ -4,7 +4,7 @@ REG1 = "eax"
 REG2 = "ebx"
 PARAM_REG1 = "edi"
 
-INDENT = "~~"
+INDENT = "~~" #if you change this, change the parse step in machineLib.py
 
 class MethodGenerator:
     def __init__(self, source):
@@ -14,7 +14,7 @@ class MethodGenerator:
         self.assemblyInstructions = []
         self.returnType = source["returnType"]
         self.methodName = source["functionName"]
-        self.returnLabel = "EXIT_" + self.methodName + ":"
+        self.returnLabel = "EXIT_" + self.methodName
 
         #put function name and parameter label
         self.assemblyInstructions.append(self.methodName + "(" + source["parameter"]["type"] + "):")
@@ -55,7 +55,7 @@ class MethodGenerator:
         if "jmp " + self.returnLabel in self.assemblyInstructions[-1]: #genReturn does this sometimes
             del self.assemblyInstructions[-1]
 
-        self.assemblyInstructions.append(self.returnLabel)
+        self.assemblyInstructions.append(self.returnLabel + ":")
         self.assemblyInstructions.append("pop rbp")
         self.assemblyInstructions.append("ret")
         self.assemblyInstructions.append("") #acts as new line
@@ -128,18 +128,27 @@ class MethodGenerator:
                 return assemblyCode
         return []
 
-    #returns a list of assembly instructions for variable declaration/assignment (both "int x;" and "int x=1;" work)
+    #returns a list of assembly instructions for variable declaration/assignment ("int x;", "int x=1;", and "int x=sum(n);" all work)
     def genDeclaration(self, source):
         self.varTable.addVar(source["dataName"], source["dataType"], source["address"], self.genVarCount())
 
         dataValue = source["dataValue"]
-        assemblyCode = self.genLogicalExpression(dataValue)
         comment = " # int " + source["dataName"] + "=" + dataValue
+        if "(" in dataValue: #e.g. "int x=sum(n);"
+            name, arg = dataValue.split("(")
+            obj = {
+                "functionName": name,
+                "argument": arg[:-1] #remove ")" after the argument
+            }
+            assemblyCode = self.genFunctionCall(obj)
+            assemblyCode.append("mov DWORD PTR [rbp" + str(source["address"]) + "], " + REG1 + comment) #return value always stored in REG1
+            return assemblyCode
+
+        assemblyCode = self.genLogicalExpression(dataValue)
         if assemblyCode:
             assemblyCode.append("mov DWORD PTR [rbp" + str(source["address"]) + "], " + REG1 + comment)
             return assemblyCode
-
-        if dataValue.isdigit():
+        elif dataValue.isdigit():
             return ["mov DWORD PTR [rbp" + str(source["address"]) + "], " + dataValue + comment]
         else:
             return ["mov DWORD PTR [rbp" + str(source["address"]) + "], DWORD PTR [rbp" + str(self.varTable.address(dataValue)) + "]" + comment]
@@ -294,8 +303,7 @@ class MethodGenerator:
         if assemblyCode:
             assemblyCode.append(jmpCode)
             return assemblyCode
-
-        if returnName.isdigit():
+        elif returnName.isdigit():
             return ["mov " + REG1 + ", " + returnName, jmpCode]
         else:
             return ["mov " + REG1 + ", DWORD PTR [rbp" + str(self.varTable.address(returnName)) + "]", jmpCode]

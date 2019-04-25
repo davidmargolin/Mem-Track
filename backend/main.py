@@ -1,4 +1,5 @@
 from compiler import *
+from machineLib import *
 from assemblyLib import *
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
@@ -33,6 +34,7 @@ def compile():
         function_names = []
         if not functions:
             raise Exception('no valid function(s) found')
+
         for function in functions:
             num_parens = 0
             num_bracks = 0
@@ -68,7 +70,11 @@ def compile():
             functionClass = Function(returnType, functionName, parameter, instruction)
             obj = functionClass.get_object()
             assembly += MethodGenerator(obj).getObject()
-            compiler.identifiers = function_names # clear local variables, keep global variables (function names)
+            compiler.identifiers = function_names.copy() # clear local variables, keep global variables (function names)
+
+        machineCode = MachineCode(assembly, (compiler.declaration+1)*-4).getObject()
+        for line in machineCode:
+            print(line)
         return jsonify(assembly)
     except Exception as e:
         return jsonify(str(e)), 404

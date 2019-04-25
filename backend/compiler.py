@@ -20,7 +20,7 @@ class Compiler:
     # IMPORTANT: anchor these ('^' at start and '$' at end) to match the entire line
     function_pattern = '^int ' + identifier_pattern + '\((int ' + identifier_pattern + ')?\){$'
     function_call_pattern = '^' + identifier_pattern + '\((' + expression_pattern + ')?\);$'
-    declaration_pattern = '^int ' + identifier_pattern + '(=' + expression_pattern + ')?;$'
+    declaration_pattern = '^int ' + identifier_pattern + '(=(' + expression_pattern + '|' + function_call_pattern[1:-2] + '))?;$'
     logic_pattern = '^' + identifier_pattern + '=' + expression_pattern + ';$'
     condition_pattern = '^if\(' + expression_pattern + '([<>]=?|(==|!=))' + expression_pattern + '\){$'
     for_loop_pattern = ('^for\(' + declaration_pattern[1:-1] + condition_pattern[5:-4] + ';(' + logic_pattern[1:-2] +
@@ -45,17 +45,17 @@ class Compiler:
         identifier = x[0]
         if self.valid_identifier(identifier):
             for element in self.identifiers:
-                if element[0] == identifier:
-                    raise CompilerException('existing identifier')
+                if element[0] == identifier and element[1] == x[1]:
+                    raise CompilerException('existing ' + element[1] + ' \'' + identifier + '\'')
 
             self.identifiers.append(x)
         else:
-            raise CompilerException('invalid identifier')
+            raise CompilerException('invalid identifier \'' + identifier + '\'')
 
     # int total(int num){
     def read_head(self, line):
         if not re.match(self.function_pattern, line):
-            raise CompilerException('invalid function syntax')
+            raise CompilerException('invalid function syntax in \'' + line + '\'')
         words = ['', '', '', '']
         i = 0
         for char in line:
@@ -77,7 +77,7 @@ class Compiler:
     # total(x);
     def read_call(self, line):
         if not re.match(self.function_call_pattern, line):
-            raise CompilerException('invalid function call syntax')
+            raise CompilerException('invalid function call syntax in \'' + line + '\'')
         words = ['', '']
         i = 0
         for char in line:
@@ -93,20 +93,20 @@ class Compiler:
         for element in self.identifiers:
             if element[0] == name:
                 if element[1] != 'function':
-                    raise CompilerException(name + ' is not a function')
+                    raise CompilerException('\'' + name + '\' is not a function')
                 elif element[2] != num_args:
-                    raise CompilerException(name + ' requires ' + str(element[2]) +
+                    raise CompilerException('function \'' + name + '\' requires ' + str(element[2]) +
                                             (' argument' if element[2] == 1 else ' arguments'))
                 else:
                     obj = FunctionCall(name, words[1])
                     return obj.get_object()
-        raise CompilerException('function ' + name + ' not found')
+        raise CompilerException('function \'' + name + '\' not found')
 
 
     # int sum=0;
     def read_declaration(self, line):
         if not re.match(self.declaration_pattern, line):
-            raise CompilerException('invalid declaration syntax')
+            raise CompilerException('invalid declaration syntax in \'' + line + '\'')
         words = ['', '', '']
         i = 0
         for char in line:
@@ -116,7 +116,11 @@ class Compiler:
                 i = i + 1
 
         self.add_identifier((words[1], 'variable'))
-        if words[2] == '': words[2] = '0' # 'int x;' becomes 'int x=0;'
+        if '(' in words[2]: # e.g. 'int sum=total(x);'
+            self.read_call(words[2] + ';')
+        elif words[2] == '':
+            words[2] = '0' # 'int x;' becomes 'int x=0;'
+
         self.declaration = self.declaration + 1
         obj = Declaration(words[0], words[1], words[2], -(self.declaration*4))
         return obj.get_object()
@@ -125,7 +129,7 @@ class Compiler:
     # sum=sum+num;
     def read_logic(self, line):
         if not re.match(self.logic_pattern, line):
-            raise CompilerException('invalid logic syntax')
+            raise CompilerException('invalid logic syntax in \'' + line + '\'')
         operators = ['+', '-', '*', '/']
         words = ['', '', '','']
         i = 0
@@ -147,7 +151,7 @@ class Compiler:
     def read_condition(self, i, segment):
         line = segment[i]
         if not re.match(self.condition_pattern, line):
-            raise CompilerException('invalid condition syntax')
+            raise CompilerException('invalid condition syntax in \'' + line + '\'')
         termination = line[3:-2]
         i = i + 1
         result = self.read_instruction(i, segment)
@@ -160,7 +164,7 @@ class Compiler:
     def read_for_loop(self, i, segment):
         line = segment[i]
         if not re.match(self.for_loop_pattern, line):
-            raise CompilerException('invalid for loop syntax')
+            raise CompilerException('invalid for loop syntax in \'' + line + '\'')
         header = line[4:-2].split(';')
         initialization = self.read_declaration(header[0]+';')
         termination = header[1]
@@ -183,7 +187,7 @@ class Compiler:
     # return sum;
     def read_return_line(self, line):
         if not re.match(self.return_pattern, line):
-            raise CompilerException('invalid return syntax')
+            raise CompilerException('invalid return syntax in \'' + line + '\'')
         data_name = line.split('return ')[1][:-1]
         obj = ReturnLine(data_name)
         return obj.get_object()
