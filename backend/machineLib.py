@@ -75,7 +75,7 @@ class MachineCode:
     }
 
     def __init__(self, source, address): # address is the first available address unused by compiler
-        self.assemblyInstructions = source.copy() # create a copy to avoid making changes to original source during translation
+        self.assemblyInstructions = source # create a copy to avoid making changes to original source during translation
         self.machineInstructions = []
         self.labelAddress = address
         self.labelAddresses = {}

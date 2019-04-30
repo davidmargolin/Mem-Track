@@ -70,14 +70,12 @@ def compile():
             functionClass = Function(returnType, functionName, parameter, instruction)
             obj = functionClass.get_object()
             assembly += MethodGenerator(obj).getObject()
-            compiler.identifiers = function_names.copy() # clear local variables, keep global variables (function names)
+            compiler.identifiers = function_names # clear local variables, keep global variables (function names)
 
         machineCode = MachineCode(assembly, (compiler.declaration+1)*-4).getObject()
-        for line in machineCode:
-            print(line)
-        return jsonify(assembly)
+        return jsonify({'assembly': assembly, 'machineCode': machineCode})
     except Exception as e:
-        return jsonify(str(e)), 404
+        return jsonify(str(e)), 400
 
 
 if __name__ == '__main__':
