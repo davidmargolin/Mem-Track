@@ -54,7 +54,7 @@ class App extends Component {
       counter++
     }
     // update the rendered data
-    this.setState({ compilingMessage: "Compiling...", assembly: [], machineCode: [] }, () =>
+    this.setState({ compilingMessage: "Compiling...", assembly: [], machineCode: [], codeMem: [] }, () =>
       fetch(`${COMPILER_ENDPOINT}/compile`, {
         method: "POST",
         headers: {
