@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
-let COMPILER_ENDPOINT = "http://localhost:5000"
-//let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
+//let COMPILER_ENDPOINT = "http://localhost:5000"
+let COMPILER_ENDPOINT = "https://mem-track-6c05e.appspot.com"
 
 /*
 Test Input:
@@ -22,8 +22,10 @@ class App extends Component {
     this.inputRef = React.createRef();
     this.state = {
       codeMem: [],
-      compiledCode: [],
-      compilingMessage: null
+      assembly: [],
+      machineCode: [],
+      compilingMessage: null,
+      showAssembly: true
     }
   }
 
@@ -52,7 +54,7 @@ class App extends Component {
       counter++
     }
     // update the rendered data
-    this.setState({ compilingMessage: "Compiling...", compiledCode: [] }, () =>
+    this.setState({ compilingMessage: "Compiling...", assembly: [] }, () =>
       fetch(`${COMPILER_ENDPOINT}/compile`, {
         method: "POST",
         headers: {
@@ -71,9 +73,9 @@ class App extends Component {
           })
         )
       }).then(response => response.json().then(json => {
-        if (response.ok){
-          this.setState({ compilingMessage: "Compiled Successfully", compiledCode: json, codeMem: newCodeMem })
-        }else{
+        if (response.ok) {
+          this.setState({ compilingMessage: "Compiled Successfully", assembly: json.assembly, machineCode: json.machineCode, codeMem: newCodeMem })
+        } else {
           this.setState({ compilingMessage: "An Error Occured: " + json })
         }
       }).catch(err => {
@@ -91,7 +93,7 @@ class App extends Component {
           <h3>Enter Program Here:</h3>
 
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
             <textarea ref={this.inputRef} style={{ minHeight: 300 }}></textarea>
             <input
               type="button"
@@ -101,11 +103,21 @@ class App extends Component {
             />
 
           </div>
-          {(this.state.compilingMessage || this.state.compiledCode.length > 0) && <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: 600 }}>
-            {<h3>{this.state.compilingMessage}<br /></h3>}
-
+          {(this.state.compilingMessage || this.state.assembly.length > 0) && <div style={{ display: 'flex', flexDirection: 'column', flex: 1, maxWidth: 600 }}>
+            <h3>
+              {this.state.compilingMessage}<br />
+            </h3>
+            <input
+              type="button"
+              style={{ minHeight: 30 }}
+              value={this.state.showAssembly ? "Show Machine Code" : "Show Assembly"}
+              onClick={() => this.setState({ showAssembly: !this.state.showAssembly })}
+            />
             <div style={{ overflowY: 'scroll', display: 'flex', flexDirection: 'column' }}>
-              {this.state.compiledCode.map((line, key) => <span key={key}>{line}<br /></span>)}
+              {this.state.showAssembly ?
+                this.state.assembly.map((line, key) => <span key={key}>{line}<br /></span>) :
+                this.state.machineCode.map((line, key) => <span key={key}>{line}<br /></span>)
+              }
             </div>
           </div>}
         </div>
