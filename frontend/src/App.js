@@ -54,7 +54,7 @@ class App extends Component {
       counter++
     }
     // update the rendered data
-    this.setState({ compilingMessage: "Compiling...", assembly: [] }, () =>
+    this.setState({ compilingMessage: "Compiling...", assembly: [], machineCode: [] }, () =>
       fetch(`${COMPILER_ENDPOINT}/compile`, {
         method: "POST",
         headers: {
@@ -107,12 +107,12 @@ class App extends Component {
             <h3>
               {this.state.compilingMessage}<br />
             </h3>
-            <input
+            {this.state.compilingMessage === "Compiled Successfully" && <input
               type="button"
               style={{ minHeight: 30 }}
               value={this.state.showAssembly ? "Show Machine Code" : "Show Assembly"}
               onClick={() => this.setState({ showAssembly: !this.state.showAssembly })}
-            />
+            />}
             <div style={{ overflowY: 'scroll', display: 'flex', flexDirection: 'column' }}>
               {this.state.showAssembly ?
                 this.state.assembly.map((line, key) => <span key={key}>{line}<br /></span>) :
