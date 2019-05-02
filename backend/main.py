@@ -1,3 +1,4 @@
+import copy
 from compiler import *
 from machineLib import *
 from assemblyLib import *
@@ -70,7 +71,7 @@ def compile():
             functionClass = Function(returnType, functionName, parameter, instruction)
             obj = functionClass.get_object()
             assembly += MethodGenerator(obj).getObject()
-            compiler.identifiers = function_names # clear local variables, keep global variables (function names)
+            compiler.identifiers = copy.deepcopy(function_names) # clear local variables, keep global variables (function names)
 
         machineCode = MachineCode(assembly, (compiler.declaration+1)*-4).getObject()
         return jsonify({'assembly': assembly, 'machineCode': machineCode})

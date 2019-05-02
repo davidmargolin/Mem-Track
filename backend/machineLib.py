@@ -15,6 +15,11 @@
 #  4 bits  |  12 bits   |            16 0's            #
 #  opcode  |  reg/addr  |                              #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                For the 'call' instruction:           #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#  4 bits  |  12 bits   |            16 1's            #
+#  opcode  |  addr      |                              #
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 #           For instructions with 0 operands:          #
 #           e.g. ret                                   #
@@ -27,6 +32,7 @@
 # max. integer value is 4095 (we don't deal with negative ints)
 
 import re
+import copy
 
 class MachineCodeException(Exception):
     pass
@@ -75,7 +81,7 @@ class MachineCode:
     }
 
     def __init__(self, source, address): # address is the first available address unused by compiler
-        self.assemblyInstructions = source # create a copy to avoid making changes to original source during translation
+        self.assemblyInstructions = copy.deepcopy(source) # create a copy to avoid making changes to original source during translation
         self.machineInstructions = []
         self.labelAddress = address
         self.labelAddresses = {}
@@ -106,6 +112,10 @@ class MachineCode:
                     self.machineInstructions.append(self.opCode[command] + ' ' + self.regCode[operands] + ' ' + ('0'*16))
 
                 # 1 operand commands with label address as operand
+                elif command == 'call':
+                    # NOTE: 'call' will have the same opcode as 'ret' (4 bits opcode, 17 total instructions), but
+                    # they will differ by the last 16 bits ('ret' has 16 0's at end while 'call' has 16 1's at end)
+                    self.machineInstructions.append(self.opCode['ret']   + ' ' + self.labelAddresses[operands] + ' ' + ('1'*16))
                 elif command in ['jmp', 'jg', 'jl', 'jge', 'jle', 'jne', 'je']:
                     self.machineInstructions.append(self.opCode[command] + ' ' + self.labelAddresses[operands] + ' ' + ('0'*16))
 
@@ -161,7 +171,7 @@ class MachineCode:
     def getObject(self):
         return self.machineInstructions
 
-    #return label address and then decrement by 4 (addresses are multiples of 4)
+    # return label address and then decrement by 4 (addresses are multiples of 4)
     def genLabelAddress(self):
         tmp = self.labelAddress
         self.labelAddress-=4
