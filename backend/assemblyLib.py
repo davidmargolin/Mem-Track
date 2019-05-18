@@ -4,7 +4,7 @@ REG1 = "eax"
 REG2 = "ebx"
 PARAM_REG1 = "edi"
 
-INDENT = "~~" #if you change this, change the parse step in machineLib.py
+INDENT = "" #if you change this, change the parse step in machineLib.py
 
 class MethodGenerator:
     def __init__(self, source):

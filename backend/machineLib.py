@@ -91,7 +91,7 @@ class MachineCode:
         # first pass to assign addresses to labels and remove indentation/comments
         for i, line in enumerate(self.assemblyInstructions):
             # remove indentation and comments from line
-            line = re.sub('~+', '', line)
+            # line = re.sub('~+', '', line)
             line = re.sub('[ ]*#.*', '', line)
             self.assemblyInstructions[i] = line
             if ':' in line: # line is a label (either function label, if/for label, or return label)
